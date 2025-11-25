@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <link rel="icon" type="image/png" href="logo.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bem-vindo ao Edusaude!</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        /* Define uma animação de "fade-in" */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Aplica a animação ao nosso container */
+        .form-container-animated {
+            animation: fadeIn 0.8s ease-out forwards;
+        }
+
+        /* Para o cursor piscar em rosa */
+        .input-picnic:focus {
+            border-color: #ec4899; /* Cor pink-500 do Tailwind */
+            box-shadow: 0 0 0 2px #fce7f3; /* Sombra pink-100 */
+            outline: none;
+        }
+    </style>
+</head>
+<body class="w-full h-screen overflow-hidden">
+
+    <img src="padrao_xadrez.jpeg" class="absolute inset-0 w-full h-full object-cover z-0" alt="Fundo de piquenique">
+
+    <main class="relative z-10 w-full h-full flex items-center justify-center p-4">
+        
+        <div class="bg-white/95 backdrop-blur-sm p-8 rounded-xl shadow-2xl w-full max-w-md form-container-animated">
+
+            <h2 class="text-4xl font-bold text-center text-green-700 mb-6">
+                Edusaude 🍉
+            </h2>
+            
+            <div class="flex mb-5 border-b-2 border-gray-200">
+                <button id="tab-login" class="flex-1 py-2 text-center font-semibold text-pink-600 border-b-4 border-pink-600 transition-all duration-300">
+                    Login
+                </button>
+                <button id="tab-register" class="flex-1 py-2 text-center font-semibold text-gray-500 transition-all duration-300">
+                    Cadastrar
+                </button>
+            </div>
+
+            <form id="form-login" class="space-y-4">
+                <div>
+                    <label for="login-email" class="block text-sm font-medium text-gray-700">Email</label>
+                    <input type="email" id="login-email" required
+                           class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm input-picnic transition-all duration-300">
+                </div>
+                <div>
+                    <label for="login-password" class="block text-sm font-medium text-gray-700">Senha</label>
+                    <input type="password" id="login-password" required
+                           class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm input-picnic transition-all duration-300">
+                </div>
+                <button type="submit"
+                        class="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-200
+                               transition-all duration-300 hover:scale-105 transform">
+                    Entrar
+                </button>
+            </form>
+
+            <form id="form-register" class="space-y-4 hidden">
+                <div>
+                    <label for="register-name" class="block text-sm font-medium text-gray-700">Nome</label>
+                    <input type="text" id="register-name" required
+                           class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm input-picnic transition-all duration-300">
+                </div>
+
+                <div>
+                    <label for="register-email" class="block text-sm font-medium text-gray-700">Email</label>
+                    <input type="email" id="register-email" required
+                           class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm input-picnic transition-all duration-300">
+                </div>
+
+                <div>
+                    <label for="register-password" class="block text-sm font-medium text-gray-700">Senha</label>
+                    <input type="password" id="register-password" required
+                           placeholder="Mínimo de 6 caracteres"
+                           class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm input-picnic transition-all duration-300">
+                </div>
+                
+                <div>
+                    <label for="register-confirm-password" class="block text-sm font-medium text-gray-700">Confirmar Senha</label>
+                    <input type="password" id="register-confirm-password" required
+                           class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm input-picnic transition-all duration-300">
+                </div>
+
+                <button type="submit"
+                        class="w-full bg-pink-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-pink-700 focus:outline-none focus:ring-4 focus:ring-pink-200
+                               transition-all duration-300 hover:scale-105 transform">
+                    Criar Conta
+                </button>
+            </form>
+            
+            <p id="feedback-message" class="mt-4 text-center text-red-600 font-medium"></p>
+        </div>
+    </main>
+
+    <script>
+        // --- 6. Conexão com o Supabase (Suas chaves) ---
+        const SUPABASE_URL = 'https://lzsxlmeevevhvtpnutzr.supabase.co'; 
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6c3hsbWVldmV2aHZ0cG51dHpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNjIyMjgsImV4cCI6MjA3NzgzODIyOH0.6NE11a7wYOgqLKY8rz8jzpw3cm5rzhm7cSsgF9v68AI'; 
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // --- 7. Lógica das Abas (Sem mudanças) ---
+        const tabLogin = document.getElementById('tab-login');
+        const tabRegister = document.getElementById('tab-register');
+        const formLogin = document.getElementById('form-login');
+        const formRegister = document.getElementById('form-register');
+        const feedbackMessage = document.getElementById('feedback-message');
+
+        tabLogin.addEventListener('click', () => {
+            tabLogin.classList.add('text-pink-600', 'border-pink-600');
+            tabRegister.classList.remove('text-pink-600', 'border-pink-600');
+            tabRegister.classList.add('text-gray-500');
+            formLogin.classList.remove('hidden');
+            formRegister.classList.add('hidden');
+            feedbackMessage.innerText = '';
+        });
+
+        tabRegister.addEventListener('click', () => {
+            tabRegister.classList.add('text-pink-600', 'border-pink-600');
+            tabLogin.classList.remove('text-pink-600', 'border-pink-600');
+            tabLogin.classList.add('text-gray-500');
+            formRegister.classList.remove('hidden');
+            formLogin.classList.add('hidden');
+            feedbackMessage.innerText = '';
+        });
+
+        // --- 8. Lógica de Cadastro (ATUALIZADA) ---
+        formRegister.addEventListener('submit', async (e) => {
+            e.preventDefault(); 
+            feedbackMessage.innerText = ''; // Limpa mensagens de erro antigas
+
+            // 1. Coletar todos os dados dos campos
+            const name = document.getElementById('register-name').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const confirmPassword = document.getElementById('register-confirm-password').value;
+
+            // 2. Validação dos dados
+            if (password.length < 6) {
+                feedbackMessage.innerText = 'A senha deve ter pelo menos 6 caracteres.';
+                return; // Para a execução
+            }
+            if (password !== confirmPassword) {
+                feedbackMessage.innerText = 'As senhas não são iguais. Tente novamente.';
+                return; // Para a execução
+            }
+
+            // 3. Enviar para o Supabase
+            const { data, error } = await supabaseClient.auth.signUp({
+                email: email,
+                password: password,
+                options: {
+                    data: {
+                        // Isso salva o nome no "User Metadata" do usuário
+                        full_name: name 
+                    }
+                }
+            });
+
+            if (error) {
+                feedbackMessage.innerText = 'Erro ao cadastrar: ' + error.message;
+            } else {
+                feedbackMessage.innerText = 'Cadastro realizado com sucesso! Agora faça o login.';
+                tabLogin.click(); // Muda automaticamente para a aba de login
+            }
+        });
+
+        // --- 9. Lógica de Login (Sem mudanças) ---
+        formLogin.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+                email: email,
+                password: password,
+            });
+
+            if (error) {
+                feedbackMessage.innerText = 'Email ou senha inválidos.';
+            } else {
+                // SUCESSO!
+                const urlParams = new URLSearchParams(window.location.search);
+                const redirectUrl = urlParams.get('redirect');
+
+                if (redirectUrl) {
+                    window.location.href = redirectUrl;
+                } else {
+                    window.location.href = 'index.html';
+                }
+            }
+        });
+    </script>
+</body>
+</html>

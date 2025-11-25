@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <link rel="icon" type="image/png" href="logo.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz - Edusaude</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Fundo verde-claro (cor de "grama") */
+        body { 
+            background-image: url('fundo.jpeg');
+        }
+
+        /* Estilo do card-toalha (piquenique) */
+        .card-piquenique-bg {
+            background-image: url('padrao_xadrez.jpeg');
+            background-size: 250px;
+            background-repeat: repeat;
+        }
+        
+        /* Estilos para as opções de resposta */
+        .answer-option {
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .answer-option:hover {
+            background-color: #fce7f3; /* pink-100 */
+            border-color: #ec4899; /* pink-500 */
+        }
+        /* Estilos de feedback */
+        .answer-option.correct {
+            background-color: #dcfce7; /* green-100 */
+            border-color: #22c55e; /* green-500 */
+            color: #166534; /* green-800 */
+            font-weight: 600;
+        }
+        .answer-option.incorrect {
+            background-color: #fee2e2; /* red-100 */
+            border-color: #ef4444; /* red-500 */
+            color: #b91c1c; /* red-700 */
+            font-weight: 600;
+        }
+        /* Para desativar cliques após a resposta */
+        .answers-disabled .answer-option {
+            pointer-events: none;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="index.html" class="text-3xl font-bold text-green-700">
+                🍓 Edusaude
+            </a>
+            <div id="nav-links" class="flex items-center space-x-4">
+                <span class="text-gray-600">Carregando...</span>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-12">
+        
+        <div class="card-piquenique-bg p-8 md:p-12 rounded-xl shadow-2xl border-4 border-white">
+            
+            <div id="quiz-wrapper" class="bg-white/95 backdrop-blur-sm p-8 rounded-xl shadow-lg hidden">
+                
+                <h1 id="quiz-titulo" class="text-3xl font-bold text-green-800 mb-2"></h1>
+                
+                <div class="flex justify-between text-gray-700 mb-6">
+                    <span id="question-counter">Pergunta 1 / 10</span>
+                    <span id="score-counter">Placar: 0</span>
+                </div>
+
+                <h2 id="question-text" class="text-2xl font-semibold text-gray-800 mb-8">
+                    Carregando pergunta...
+                </h2>
+
+                <div id="answers-container" class="space-y-4">
+                    </div>
+                
+                <div id="feedback-area" class="mt-8 text-center">
+                    <p id="feedback-text" class="text-lg font-medium"></p>
+                    <button id="next-button" class="mt-4 bg-green-600 text-white py-2 px-8 rounded-lg font-semibold hover:bg-green-700 transition-colors hidden">
+                        Próxima Pergunta
+                    </button>
+                    <button id="finish-button" class="mt-4 bg-pink-600 text-white py-2 px-8 rounded-lg font-semibold hover:bg-pink-700 transition-colors hidden">
+                        Ver Resultado
+                    </button>
+                </div>
+            </div>
+
+            <div id="result-wrapper" class="bg-white/95 backdrop-blur-sm p-8 rounded-xl shadow-lg text-center hidden">
+                <h1 id="result-title" class="text-4xl font-bold text-green-800 mb-6">Quiz Finalizado!</h1>
+                <p id="result-score" class="text-6xl font-bold text-pink-600 mb-8">3 / 5</p>
+                <p id="result-message" class="text-xl text-gray-700 mb-8">Ótimo trabalho!</p>
+                <a href="index.html" class="bg-green-600 text-white py-3 px-10 rounded-lg font-semibold text-lg hover:bg-green-700 transition-all">
+                    Voltar aos Temas
+                </a>
+            </div>
+
+            <p id="loading-message" class="text-center text-xl text-gray-700 bg-white/95 p-8 rounded-lg">
+                Verificando sua autenticação...
+            </p>
+
+        </div>
+    </main>
+
+    <script>
+        // --- 3. Conexão com o Supabase ---
+        const SUPABASE_URL = 'https://lzsxlmeevevhvtpnutzr.supabase.co'; 
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6c3hsbWVldmV2aHZ0cG51dHpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNjIyMjgsImV4cCI6MjA3NzgzODIyOH0.6NE11a7wYOgqLKY8rz8jzpw3cm5rzhm7cSsgF9v68AI'; 
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // --- 4. Elementos do DOM ---
+        const navLinks = document.getElementById('nav-links');
+        const loadingMessage = document.getElementById('loading-message');
+        const quizWrapper = document.getElementById('quiz-wrapper');
+        const resultWrapper = document.getElementById('result-wrapper');
+        
+        const quizTitulo = document.getElementById('quiz-titulo');
+        const questionCounter = document.getElementById('question-counter');
+        const scoreCounter = document.getElementById('score-counter');
+        const questionText = document.getElementById('question-text');
+        const answersContainer = document.getElementById('answers-container');
+        
+        const feedbackText = document.getElementById('feedback-text');
+        const nextButton = document.getElementById('next-button');
+        const finishButton = document.getElementById('finish-button');
+        
+        const resultTitle = document.getElementById('result-title');
+        const resultScore = document.getElementById('result-score');
+        const resultMessage = document.getElementById('result-message');
+        
+        // --- 5. Variáveis de Estado do Quiz ---
+        let quizData = null; // Armazena todas as perguntas e respostas
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let currentUser = null;
+
+        // --- 6. Lógica Principal ---
+
+        // Pega o ID do quiz da URL
+        function getQuizIdFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('quiz_id');
+        }
+
+        // Função principal que roda ao carregar
+        async function checkSessionAndLoad() {
+            const { data: { user } } = await supabaseClient.auth.getUser();
+
+            if (!user) {
+                // NÃO HÁ USUÁRIO LOGADO!
+                loadingMessage.innerText = 'Você precisa estar logado para fazer o quiz. Redirecionando...';
+                // Pega o quiz_id atual para o redirecionamento
+                const quizId = getQuizIdFromUrl();
+                window.location.href = `login.html?redirect=quiz.html?quiz_id=${quizId}`;
+            } else {
+                // USUÁRIO LOGADO!
+                currentUser = user;
+                // Atualiza o cabeçalho
+                updateHeader(user);
+                // Carrega os dados do quiz
+                loadQuizData();
+            }
+        }
+
+        // Atualiza o cabeçalho
+        function updateHeader(user) {
+            const displayName = user.user_metadata.full_name || user.email.split('@')[0];
+            navLinks.innerHTML = `
+                <a href="index.html" class="text-gray-600 hover:text-green-700 font-medium">Home</a>
+                <span class="text-gray-600 text-sm hidden md:block">Olá, ${displayName}</span>
+                <button id="logout-button" class="bg-pink-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-pink-600">
+                    Sair
+                </button>
+            `;
+            document.getElementById('logout-button').addEventListener('click', async () => {
+                await supabaseClient.auth.signOut();
+                window.location.href = 'index.html';
+            });
+        }
+
+        // Busca todos os dados do quiz no Supabase
+        async function loadQuizData() {
+            const quizId = getQuizIdFromUrl();
+            if (!quizId) {
+                loadingMessage.innerText = "Erro: Quiz não encontrado.";
+                return;
+            }
+
+            // Esta é a consulta mágica!
+            // Busca o Quiz, suas Perguntas, e as Respostas de cada Pergunta, tudo de uma vez.
+            const { data, error } = await supabaseClient
+                .from('quizzes')
+                .select(`
+                    titulo,
+                    perguntas (
+                        texto_pergunta,
+                        respostas (
+                            texto_resposta,
+                            e_correta
+                        )
+                    )
+                `)
+                .eq('id', quizId)
+                .single(); // Espera um resultado único
+
+            if (error || !data) {
+                console.error("Erro ao buscar quiz:", error);
+                loadingMessage.innerText = "Não foi possível carregar o quiz.";
+                return;
+            }
+
+            // Sucesso!
+            quizData = data;
+            // Embaralha as respostas de cada pergunta para não virem sempre na mesma ordem
+            quizData.perguntas.forEach(pergunta => {
+                pergunta.respostas.sort(() => Math.random() - 0.5);
+            });
+            
+            loadingMessage.classList.add('hidden'); // Esconde "Carregando"
+            quizWrapper.classList.remove('hidden'); // Mostra o Quiz
+            
+            // Inicia o quiz
+            startQuiz();
+        }
+
+        // Prepara a UI para o início
+        function startQuiz() {
+            quizTitulo.innerText = quizData.titulo;
+            score = 0;
+            currentQuestionIndex = 0;
+            renderCurrentQuestion();
+        }
+        
+        // Mostra a pergunta e respostas atuais
+        function renderCurrentQuestion() {
+            // Limpa o feedback anterior
+            feedbackText.innerText = '';
+            nextButton.classList.add('hidden');
+            finishButton.classList.add('hidden');
+            answersContainer.classList.remove('answers-disabled');
+
+            // Pega a pergunta atual
+            const pergunta = quizData.perguntas[currentQuestionIndex];
+            
+            // Atualiza os contadores
+            questionText.innerText = pergunta.texto_pergunta;
+            questionCounter.innerText = `Pergunta ${currentQuestionIndex + 1} / ${quizData.perguntas.length}`;
+            scoreCounter.innerText = `Placar: ${score}`;
+            
+            // Limpa as respostas antigas
+            answersContainer.innerHTML = '';
+            
+            // Cria os botões de resposta
+            pergunta.respostas.forEach(resposta => {
+                const button = document.createElement('button');
+                button.className = 'answer-option block w-full p-4 border-2 border-gray-300 rounded-lg text-left text-gray-700';
+                button.innerText = resposta.texto_resposta;
+                // Adiciona um "dado" ao botão para sabermos se é o correto
+                button.dataset.correct = resposta.e_correta; 
+                
+                button.addEventListener('click', handleAnswerClick);
+                answersContainer.appendChild(button);
+            });
+        }
+        
+        // Chamado quando o usuário clica em uma resposta
+        function handleAnswerClick(e) {
+            const clickedButton = e.target;
+            const isCorrect = clickedButton.dataset.correct === 'true';
+
+            // Desativa todos os botões
+            answersContainer.classList.add('answers-disabled');
+
+            if (isCorrect) {
+                score++; // Aumenta o placar
+                clickedButton.classList.add('correct');
+                feedbackText.innerText = 'Resposta Correta!';
+                feedbackText.className = 'text-lg font-medium text-green-600';
+            } else {
+                clickedButton.classList.add('incorrect');
+                feedbackText.innerText = 'Resposta Incorreta!';
+                feedbackText.className = 'text-lg font-medium text-red-600';
+                
+                // Mostra qual era a correta
+                Array.from(answersContainer.children).forEach(btn => {
+                    if (btn.dataset.correct === 'true') {
+                        btn.classList.add('correct');
+                    }
+                });
+            }
+
+            // Atualiza o placar
+            scoreCounter.innerText = `Placar: ${score}`;
+
+            // Verifica se é a última pergunta
+            if (currentQuestionIndex < quizData.perguntas.length - 1) {
+                nextButton.classList.remove('hidden');
+            } else {
+                finishButton.classList.remove('hidden');
+            }
+        }
+        
+        // Vai para a próxima pergunta
+        nextButton.addEventListener('click', () => {
+            currentQuestionIndex++;
+            renderCurrentQuestion();
+        });
+
+        // Termina o quiz e mostra os resultados
+        finishButton.addEventListener('click', () => {
+            quizWrapper.classList.add('hidden');
+            resultWrapper.classList.remove('hidden');
+            
+            const total = quizData.perguntas.length;
+            resultScore.innerText = `${score} / ${total}`;
+            
+            const percentage = (score / total);
+            if (percentage === 1) {
+                resultMessage.innerText = 'Perfeito! Você acertou todas!';
+            } else if (percentage >= 0.5) {
+                resultMessage.innerText = 'Muito bem! Você conhece o assunto.';
+            } else {
+                resultMessage.innerText = 'Continue estudando e tente novamente!';
+            }
+        });
+
+        // --- Ponto de Partida ---
+        checkSessionAndLoad();
+    </script>
+</body>
+</html>

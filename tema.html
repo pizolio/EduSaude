@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <link rel="icon" type="image/png" href="logo.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aula - Edusaude</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Fundo verde-claro (cor de "grama") */
+        body { 
+            background-image: url('fundo.jpeg');
+        }
+
+        /* Estilo do card-toalha (piquenique) */
+        .card-piquenique-bg {
+            background-image: url('padrao_xadrez.jpeg');
+            background-size: 250px;
+            background-repeat: repeat;
+        }
+
+        /* Classe para o player de vídeo responsivo */
+        .video-responsive {
+            overflow: hidden;
+            padding-bottom: 56.25%; /* Proporção 16:9 */
+            position: relative;
+            height: 0;
+            border-radius: 0.5rem; /* rounded-lg */
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .video-responsive iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="index.html" class="text-3xl font-bold text-green-700">
+                🍓 Edusaude
+            </a>
+            <div id="nav-links" class="flex items-center space-x-4">
+                <a href="index.html" class="text-gray-600 hover:text-green-700 font-medium">Home</a>
+                <a href="login.html" class="bg-green-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
+                    Login
+                </a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-12">
+        
+        <div class="card-piquenique-bg p-8 md:p-12 rounded-xl shadow-2xl border-4 border-white">
+            
+            <div class="bg-white/95 backdrop-blur-sm p-8 rounded-xl shadow-lg">
+                
+                <h1 id="tema-titulo" class="text-4xl font-bold text-green-800 mb-8">
+                    Carregando...
+                </h1>
+
+                <div id="aulas-container" class="space-y-8">
+                    <p id="aulas-loading" class="text-gray-600">Carregando aula...</p>
+                </div>
+                
+                <hr class="my-8 border-gray-300">
+
+                <div id="quiz-container" class_="text-center">
+                    <p id="quiz-loading" class="text-gray-600">Carregando quiz...</p>
+                    </div>
+
+            </div>
+        </div>
+    </main>
+
+    <footer class="text-center py-8 text-white-600">
+         <p>&copy; 2025 Edusaude. Todos os direitos reservados.</p>
+    </footer>
+
+
+    <script>
+        // --- 4. Conexão com o Supabase ---
+        // ESTAS SÃO AS CHAVES CORRETAS (COPIADAS DO SEU index.html)
+        const SUPABASE_URL = 'https://lzsxlmeevevhvtpnutzr.supabase.co'; 
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6c3hsbWVldmV2aHZ0cG51dHpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNjIyMjgsImV4cCI6MjA3NzgzODIyOH0.6NE11a7wYOgqLKY8rz8jzpw3cm5rzhm7cSsgF9v68AI'; 
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // --- 5. Lógica da Página ---
+        const navLinks = document.getElementById('nav-links');
+        const temaTitulo = document.getElementById('tema-titulo');
+        const aulasContainer = document.getElementById('aulas-container');
+        const aulasLoading = document.getElementById('aulas-loading');
+        const quizContainer = document.getElementById('quiz-container');
+        const quizLoading = document.getElementById('quiz-loading');
+
+        // Função para pegar o ID da URL
+        function getThemeIdFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('id');
+        }
+        
+        // Função para converter link do YouTube para link "Embed"
+        function convertToEmbedUrl(url) {
+            try {
+                const urlObj = new URL(url);
+                if (urlObj.hostname === 'www.youtube.com' || urlObj.hostname === 'youtube.com') {
+                    const videoId = urlObj.searchParams.get('v');
+                    return `https://www.youtube.com/embed/${videoId}`;
+                }
+                return url; 
+            } catch (e) {
+                return url; 
+            }
+        }
+
+        // Função para carregar todo o conteúdo
+        async function loadPageContent() {
+            const temaId = getThemeIdFromUrl();
+            if (!temaId) {
+                temaTitulo.innerText = "Tema não encontrado!";
+                aulasLoading.innerText = "";
+                quizLoading.innerText = "";
+                return;
+            }
+
+            // 1. Buscar o nome do tema
+            const { data: temaData, error: temaError } = await supabaseClient
+                .from('temas')
+                .select('nome')
+                .eq('id', temaId)
+                .single(); 
+
+            if (temaError || !temaData) {
+                console.error('Erro ao buscar tema:', temaError);
+                temaTitulo.innerText = "Erro ao carregar tema.";
+            } else {
+                temaTitulo.innerText = temaData.nome;
+            }
+
+            // 2. Buscar as aulas (vídeos)
+            const { data: aulasData, error: aulasError } = await supabaseClient
+                .from('aulas')
+                .select('titulo, video_url')
+                .eq('tema_id', temaId);
+
+            if (aulasError) {
+                console.error('Erro ao buscar aulas:', aulasError);
+                aulasLoading.innerText = "Erro ao carregar aulas.";
+            } else if (aulasData.length === 0) {
+                aulasLoading.innerText = "Nenhuma aula em vídeo encontrada para este tema.";
+            } else {
+                aulasContainer.innerHTML = ''; 
+                aulasData.forEach(aula => {
+                    const embedUrl = convertToEmbedUrl(aula.video_url);
+                    const aulaHtml = `
+                        <div>
+                            <h2 class="text-2xl font-semibold text-gray-800 mb-4">${aula.titulo}</h2>
+                            <div class="video-responsive">
+                                <iframe 
+                                    src="${embedUrl}" 
+                                    frameborder="0" 
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                    allowfullscreen>
+                                </iframe>
+                            </div>
+                        </div>
+                    `;
+                    aulasContainer.innerHTML += aulaHtml;
+                });
+            }
+
+            // 3. Buscar o Quiz
+            const { data: quizData, error: quizError } = await supabaseClient
+                .from('quizzes')
+                .select('id, titulo') 
+                .eq('tema_id', temaId)
+                .maybeSingle(); 
+
+            if (quizError) {
+                console.error('Erro ao buscar quiz:', quizError);
+                quizLoading.innerText = "Erro ao carregar o quiz.";
+            } else if (!quizData) {
+                quizLoading.innerText = "Nenhum quiz disponível para este tema ainda.";
+            } else {
+                quizLoading.innerText = ""; 
+                const quizHtml = `
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-4">Teste seu conhecimento!</h2>
+                    <p class="text-gray-700 mb-6">Complete a aula e depois faça o quiz sobre "${quizData.titulo}".</p>
+                    <a href="quiz.html?quiz_id=${quizData.id}" 
+                       class="w-full md:w-auto inline-block bg-pink-600 text-white py-3 px-10 rounded-lg font-semibold text-lg hover:bg-pink-700 focus:outline-none focus:ring-4 focus:ring-pink-200
+                              transition-all duration-300 hover:scale-105 transform">
+                        Começar o Quiz!
+                    </a>
+                `;
+                quizContainer.innerHTML = quizHtml;
+            }
+        }
+
+        // Função para checar o usuário (idêntica à do index.html)
+        async function checkUser() {
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            if (user) {
+                const displayName = user.user_metadata.full_name || user.email.split('@')[0];
+                navLinks.innerHTML = `
+                    <a href="index.html" class="text-gray-600 hover:text-green-700 font-medium">Home</a>
+                    <span class="text-gray-600 text-sm hidden md:block">Olá, ${displayName}</span>
+                    <button id="logout-button" class="bg-pink-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-pink-600">
+                        Sair
+                    </button>
+                `;
+                document.getElementById('logout-button').addEventListener('click', async () => {
+                    await supabaseClient.auth.signOut();
+                    location.reload(); 
+                });
+            } 
+        }
+
+        // --- Ponto de Partida ---
+        checkUser();
+        loadPageContent();
+    </script>
+</body>
+</html>

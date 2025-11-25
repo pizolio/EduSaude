@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <link rel="icon" type="image/png" href="logo.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Início - Edusaude</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Fundo de grama (como na sua última versão) */
+        body { 
+            background-image: url('fundo.jpeg');
+            background-repeat: repeat;
+        }
+
+        /* Estilo do card-toalha (como no seu arquivo) */
+        .card-piquenique-bg {
+            background-image: url('padrao_xadrez.jpeg');
+            background-size: 250px; 
+            background-repeat: repeat;
+        }
+
+        /* Estilo dos cards de tema (como no seu arquivo) */
+        .card-tema { 
+            transition: all 0.3s ease; 
+        }
+        .card-tema:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="index.html" class="text-3xl font-bold text-green-700">
+                🍓 Edusaude
+            </a>
+            
+            <div id="nav-links" class="flex items-center space-x-4">
+                <a href="forum.html" class="text-gray-600 hover:text-green-700 font-medium">Fórum</a>
+                <a href="login.html" class="bg-green-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
+                    Login
+                </a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-12">
+        
+        <div class="card-piquenique-bg p-8 md:p-12 rounded-xl shadow-2xl border-4 border-white">
+            
+            <div class="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg mb-8 overflow-hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2">
+                    
+                    <div class="min-h-[300px] md:min-h-full bg-cover bg-center"
+                         style="background-image: url('https://images.unsplash.com/photo-1540420773420-3366772f4999?q=80&w=1932&auto=format&fit=crop')">
+                        </div>
+
+                    <div class="flex flex-col justify-center p-8 md:p-12">
+                        <h1 class="text-4xl font-bold text-green-800">Consulte, aprenda e cuide de você!</h1>
+                        <p class="text-xl mt-4 text-gray-700">Bem-vindo(a) ao Edusaude! Seu espaço para aprender sobre saúde, nutrição e bem-estar de forma fácil e interativa.</p>
+                        <a href="#temas" class="mt-8 inline-block w-auto bg-pink-600 text-white py-3 px-8 rounded-lg font-semibold hover:bg-pink-700 transition-all text-center md:w-max">
+                            Comece a explorar
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <div class="lg:col-span-2" id="temas">
+                    <div class="bg-white/95 backdrop-blur-sm p-8 md:p-12 rounded-xl shadow-lg h-full">
+                        <h2 class="text-3xl font-semibold text-gray-800 mb-8">Nossos temas</h2>
+                        
+                        <div id="temas-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <p class="text-gray-600 col-span-full">Carregando temas...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-1 space-y-8">
+                    
+                    <div id="featured-quiz-card" class="bg-white/95 backdrop-blur-sm p-8 rounded-xl shadow-lg">
+                        <h3 class="text-2xl font-semibold text-gray-800 mb-4">Quiz em Destaque</h3>
+                        <p class="text-gray-700 mb-4">Teste seus conhecimentos sobre os mitos da nutrição!</p>
+                        <a id="quiz-destaque-link" href="#" class="block w-full text-center bg-pink-600 text-white py-3 px-5 rounded-lg font-semibold hover:bg-pink-700 transition-all">
+                            Fazer o Quiz!
+                        </a>
+                    </div>
+
+                    <div class="bg-white/95 backdrop-blur-sm p-8 rounded-xl shadow-lg">
+                        <h3 class="text-2xl font-semibold text-gray-800 mb-4">Comunidade</h3>
+                        <p class="text-gray-700 mb-4">Tem alguma dúvida? Participe do nosso fórum e converse com outros membros.</p>
+                        <a href="forum.html" class="block w-full text-center bg-green-600 text-white py-3 px-5 rounded-lg font-semibold hover:bg-green-700 transition-all">
+                            Ir para o Fórum
+                        </a>
+                    </div>
+                    
+                    <div id="cta-login-card" class="bg-white/95 backdrop-blur-sm p-8 rounded-xl shadow-lg hidden">
+                        </div>
+
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="text-center py-8">
+         <p class="font-semibold text-white" style="text-shadow: 0 1px 3px rgba(0,0,0,0.5);">&copy; 2025 Edusaude. Todos os direitos reservados.</p>
+    </footer>
+
+
+    <script>
+        // --- Conexão com o Supabase (Suas chaves) ---
+        const SUPABASE_URL = 'https://lzsxlmeevevhvtpnutzr.supabase.co'; 
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6c3hsbWVldmV2aHZ0cG51dHpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNjIyMjgsImV4cCI6MjA3NzgzODIyOH0.6NE11a7wYOgqLKY8rz8jzpw3cm5rzhm7cSsgF9v68AI'; 
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // --- Lógica da Página (Sem mudanças) ---
+        const navLinks = document.getElementById('nav-links');
+        const temasContainer = document.getElementById('temas-container');
+        const featuredQuizLink = document.getElementById('quiz-destaque-link');
+        const featuredQuizCard = document.getElementById('featured-quiz-card');
+        const ctaLoginCard = document.getElementById('cta-login-card');
+
+        // Função para checar o usuário e atualizar o cabeçalho
+        async function checkUserAndLoad() {
+            const { data: { user } } = await supabaseClient.auth.getUser();
+
+            if (user) {
+                // Usuário ESTÁ LOGADO
+                const displayName = user.user_metadata.full_name || user.email.split('@')[0];
+                
+                navLinks.innerHTML = `
+                    <a href="forum.html" class="text-gray-600 hover:text-green-700 font-medium">Fórum</a>
+                    <span class="text-gray-600 text-sm hidden md:block">Olá, ${displayName}</span>
+                    <button id="logout-button" class="bg-pink-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-pink-600 transition-colors">
+                        Sair
+                    </button>
+                `;
+                document.getElementById('logout-button').addEventListener('click', async () => {
+                    await supabaseClient.auth.signOut();
+                    location.reload(); 
+                });
+            } else {
+                // NÃO-LOGADO: Mostrar o Card CTA de Login
+                ctaLoginCard.classList.remove('hidden');
+                ctaLoginCard.innerHTML = `
+                    <h3 class="text-2xl font-semibold text-gray-800 mb-4">Junte-se a nós!</h3>
+                    <p class="text-gray-700 mb-4">Crie uma conta gratuita para participar dos quizzes e do fórum.</p>
+                    <a href="login.html" class="block w-full text-center bg-blue-600 text-white py-3 px-5 rounded-lg font-semibold hover:bg-blue-700 transition-all">
+                        Criar Conta
+                    </a>
+                `;
+            }
+            
+            loadTemas();
+            loadFeaturedQuiz();
+        }
+
+        // Função para carregar os cards de temas (Sem mudanças)
+        async function loadTemas() {
+            const { data, error } = await supabaseClient
+                .from('temas')
+                .select('*');
+
+            if (error) {
+                temasContainer.innerHTML = `<p class="text-red-500 col-span-full">Não foi possível carregar os temas.</p>`;
+                return;
+            }
+
+            if (data.length === 0) {
+                temasContainer.innerHTML = `<p class="text-gray-600 col-span-full">Nenhum tema cadastrado ainda.</p>`;
+                return;
+            }
+
+            temasContainer.innerHTML = ''; 
+            data.forEach(tema => {
+                const card = `
+                    <a href="tema.html?id=${tema.id}" class="card-tema block bg-white p-6 rounded-2xl shadow-lg border-2 border-green-200">
+                        <h3 class="text-xl font-bold text-green-800 mb-2">${tema.nome}</h3>
+                        <p class="text-gray-700 text-sm">${tema.descricao}</p>
+                    </a>
+                `;
+                temasContainer.innerHTML += card;
+            });
+        }
+        
+        // Função para carregar o link do Quiz em Destaque (Sem mudanças)
+        async function loadFeaturedQuiz() {
+            const { data, error } = await supabaseClient
+                .from('quizzes')
+                .select('id')
+                .eq('titulo', 'Quiz: Mitos da Nutrição')
+                .maybeSingle();
+
+            if (data && !error) {
+                featuredQuizLink.href = `quiz.html?quiz_id=${data.id}`;
+            } else {
+                featuredQuizCard.classList.add('hidden');
+            }
+        }
+
+        // --- Ponto de Partida ---
+        checkUserAndLoad();
+    </script>
+</body>
+</html>
